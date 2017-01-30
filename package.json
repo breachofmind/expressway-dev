@@ -1,0 +1,26 @@
+{
+  "name": "expressway-dev",
+  "version": "1.0.0",
+  "description": "Expressway development tools",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/breachofmind/expressway-dev.git"
+  },
+  "keywords": [
+    "expressway",
+    "development",
+    "middleware",
+    "express",
+    "node"
+  ],
+  "author": "Mike Adamczyk <mike@bom.us>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/breachofmind/expressway-dev/issues"
+  },
+  "homepage": "https://github.com/breachofmind/expressway-dev#readme"
+}
