@@ -40,6 +40,7 @@ class Webpack extends Middleware
 
         } catch(err) {
             log.warn('Error loading webpack: %s', extension.name);
+            console.error(err);
             return;
         }
 

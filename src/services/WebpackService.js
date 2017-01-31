@@ -5,43 +5,151 @@ var path = require('path');
 var webpack = require('webpack');
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-const PACKAGE_ACTIONS = {
-    "vue" : function(npm)
-    {
-        let config = {
-            loaders: {js:'babel-loader'}
-        };
-        this.resolve.alias['vue$'] = 'vue/dist/vue.common.js';
-        this.loader('vue', {loaders: ['vue-loader']}, {vue: config})
-    },
-
-    "babel-loader" : function(npm)
-    {
-        this.loader('js', {
-            loader: "babel-loader",
-            exclude: /(node_modules|bower_components)/,
-            query: {
-                cacheDirectory:true,
-                presets: ['es2015']
-            }
-        });
-    },
-
-    "sass-loader" : function(npm)
-    {
-        let hasPostCss = npm('dependencies.postcss-loader') || npm('devDependencies.postccss-loader');
-        let config = {outputStyle: app.env == ENV_LOCAL ? "expanded" : "compressed"};
-        let loaders = hasPostCss ? ['postcss-loader', 'sass-loader'] : ['sass-loader'];
-        let opts = this.extractCSS
-            ? {loader: ExtractTextPlugin.extract("style-loader", ['css-loader'].concat(loaders))}
-            : {loaders: ['style-loader','css-loader'].concat(loaders)};
-
-        this.loader('scss', opts, {sassLoader:config});
-    }
-};
-
 module.exports = function(app,paths,url,utils)
 {
+
+    const PACKAGE_ACTIONS = {
+        "vue-loader" : function(npm)
+        {
+            let config = {
+                loaders: {js:'babel-loader'}
+            };
+            this.resolve.alias['vue$'] = 'vue/dist/vue.common.js';
+            this.loader('vue', {loaders: ['vue-loader']}, {vue: config})
+        },
+
+        "babel-loader" : function(npm)
+        {
+            this.loader('js', {
+                loader: "babel-loader",
+                options: {
+                    ignore: /(node_modules|bower_components)/,
+                    cacheDirectory: true,
+                    presets: [
+                        ['es2015', {modules:false}]
+                    ]
+                },
+            });
+        },
+
+        "sass-loader" : function(npm)
+        {
+            let use;
+            let hasPostcss = npm('dependencies.postcss-loader') || npm('devDependencies.postcss-loader');
+            let postcssLoader = {
+                loader:"postcss-loader",
+                options: {
+                    plugins: [require('autoprefixer')]
+                }
+            };
+            let sassLoader = {
+                loader:"sass-loader",
+                options: {
+                    outputStyle: app.env == ENV_LOCAL ? "expanded" : "compressed"
+                }
+            };
+
+            if (this.extractCSS) {
+                use = ExtractTextPlugin.extract({
+                    fallbackLoader: "style-loader",
+                    loader: hasPostcss ? ['css-loader',postcssLoader,sassLoader] : ['style-loader','css-loader',sassLoader]
+                });
+
+            } else {
+                use = hasPostcss ? ['style-loader','css-loader',postcssLoader,sassLoader] : ['style-loader','css-loader',sassLoader];
+            }
+
+            this.loader('scss', {use: use});
+        }
+    };
+
+    /**
+     * For renaming the input file
+     * @param input
+     * @param name
+     * @returns {string}
+     */
+    function rename(input,name)
+    {
+        return input.replace("[name]",name);
+    }
+
+    /**
+     * Get the loaders configuration.
+     * @param service
+     * @returns {{loaders: *}}
+     */
+    function getLoaders(service)
+    {
+        return {
+            rules: _.map(service.rules, (value,key) => {
+                return value;
+            })
+        }
+    }
+
+    /**
+     * Get the entry objects.
+     * @returns {{}}
+     * @private
+     */
+    function getEntries(service)
+    {
+        let out = {};
+        _.each(service.entries, (arr,name) => {
+            let middleware = arr;
+            if (service.hmr && name !== 'vendor') {
+                middleware = [
+                    // 'webpack/hot/dev-server',
+                    // `webpack-hot-middleware/client?name=${name}&path=${service.hmr}__webpack_hmr`,
+                ].concat(arr);
+            }
+            out[name] = middleware;
+        });
+        if (out.vendor && ! out.vendor.length) {
+            delete out.vendor;
+        }
+        return out;
+    }
+
+    /**
+     * Get the plugins based on the configuration settings.
+     * @returns {Array}
+     * @private
+     */
+    function getPlugins(service)
+    {
+        let plugins = [];
+
+        if (app.env == ENV_PROD) {
+            plugins.push(new webpack.DefinePlugin({
+                'process.env': {NODE_ENV: '"production"'}
+            }));
+        }
+        if (! service.showErrors) {
+            plugins.push(new webpack.NoEmitOnErrorsPlugin());
+        }
+        if (service.entries.vendor.length) {
+            plugins.push(new webpack.optimize.CommonsChunkPlugin({
+                name: "vendor",
+                filename: "vendor.js"
+            }));
+        }
+        if (service.hmr) {
+            plugins.push(new webpack.HotModuleReplacementPlugin());
+        }
+        if (service.uglify) {
+            plugins.push(new webpack.optimize.UglifyJsPlugin(typeof service.uglify == 'object' ? service.uglify : {}));
+        }
+        if (service.extractCSS) {
+            plugins.push(new ExtractTextPlugin({
+                filename:service.extractCSS
+            }));
+        }
+
+        return service.plugins.concat(plugins);
+    }
+
     return class WebpackService
     {
         constructor(extension)
@@ -55,7 +163,7 @@ module.exports = function(app,paths,url,utils)
             this.chunkFilename = "chunk.[id].js";
             this.resolve       = {alias: {}};
             this.devtool       = "cheap-module-sourcemap";
-            this.loaders       = {};
+            this.rules         = {};
             this.plugins       = [];
             this.hmr           = app.env === ENV_PROD ? false : this.publicPath;
             this.uglify        = app.env === ENV_PROD;
@@ -129,13 +237,12 @@ module.exports = function(app,paths,url,utils)
          * @param config object
          * @returns {WebpackService}
          */
-        loader(ext,opts={},config={})
+        loader(ext,opts={})
         {
             let loader = {
                 test: new RegExp(`\.${ext}$`)
             };
-            this.loaders[ext] = _.assign(loader,opts);
-            _.assign(this.config, config);
+            this.rules[ext] = _.assign(loader,opts);
 
             return this;
         }
@@ -158,9 +265,9 @@ module.exports = function(app,paths,url,utils)
         get files()
         {
             return {
-                js: _.map(this.entries, (value,name) => {
-                    return this.publicPath + rename(this.filename, name);
-                }),
+                js: _.compact(_.map(this.entries, (value,name) => {
+                    if (value.length) return this.publicPath + rename(this.filename, name);
+                })),
                 css: _.compact(_.map(this.entries, (value,name) => {
                     if (! this.extractCSS || name === 'vendor') return;
                     return this.publicPath + rename(this.extractCSS, name);
@@ -169,10 +276,10 @@ module.exports = function(app,paths,url,utils)
         }
 
         /**
-         * Convert the object into a webpack config.
+         * Return the configuration object.
          * @returns {Object}
          */
-        toJSON()
+        get configuration()
         {
             return _.assign({}, this.config, {
                 entry: getEntries(this),
@@ -185,12 +292,20 @@ module.exports = function(app,paths,url,utils)
         }
 
         /**
-         * Alias of toJSON
-         * @returns {Object}
+         * Run the webpack configuration.
+         * @returns {Promise}
          */
-        get configuration()
+        run()
         {
-            return this.toJSON();
+            return new Promise((resolve,reject) =>
+            {
+                webpack(this.configuration, (err,stats) => {
+                    if (err || stats.hasErrors()) {
+                        return reject(err);
+                    }
+                    return resolve(stats);
+                })
+            });
         }
 
         /**
@@ -208,86 +323,3 @@ module.exports = function(app,paths,url,utils)
         }
     }
 };
-
-/**
- * For renaming the input file
- * @param input
- * @param name
- * @returns {string}
- */
-function rename(input,name)
-{
-    return input.replace("[name]",name);
-}
-
-/**
- * Get the loaders configuration.
- * @param service
- * @returns {{loaders: *}}
- */
-function getLoaders(service)
-{
-    return {
-        loaders: _.map(service.loaders, (value,key) => {
-            return value;
-        })
-    }
-}
-
-/**
- * Get the entry objects.
- * @returns {{}}
- * @private
- */
-function getEntries(service)
-{
-    let out = {};
-    _.each(service.entries, (arr,name) => {
-        let middleware = arr;
-        if (service.hmr && name !== 'vendor') {
-            middleware = [
-                'webpack/hot/dev-server',
-                `webpack-hot-middleware/client?name=${name}&path=${service.hmr}__webpack_hmr`,
-            ].concat(arr);
-        }
-        out[name] = middleware;
-    });
-    return out;
-}
-
-/**
- * Get the plugins based on the configuration settings.
- * @returns {Array}
- * @private
- */
-function getPlugins(service)
-{
-    let plugins = [];
-
-    if (app.env == ENV_PROD) {
-        plugins.push(new webpack.DefinePlugin({
-            'process.env': {NODE_ENV: '"production"'}
-        }));
-    }
-    if (! service.showErrors) {
-        plugins.push(new webpack.NoErrorsPlugin());
-    }
-    if (service.entries.vendor.length) {
-        plugins.push(new webpack.optimize.CommonsChunkPlugin({
-            name: "vendor",
-            filename: "vendor.js"
-        }));
-    }
-    if (service.hmr) {
-        plugins.push(new webpack.optimize.OccurenceOrderPlugin());
-        plugins.push(new webpack.HotModuleReplacementPlugin());
-    }
-    if (service.uglify) {
-        plugins.push(new webpack.optimize.UglifyJsPlugin(typeof service.uglify == 'object' ? service.uglify : {}));
-    }
-    if (service.extractCSS) {
-        plugins.push(new ExtractTextPlugin(service.extractCSS));
-    }
-
-    return service.plugins.concat(plugins);
-}

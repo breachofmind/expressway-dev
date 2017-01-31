@@ -6,12 +6,32 @@ class WebpackProvider extends Provider
     {
         super(app);
 
-        this.order = 0;
+        this.order = 1;
 
         app.use([
             require('../middlewares/Livereload'),
             require('../middlewares/Webpack'),
         ]);
+
+        app.call(this,'buildCommand');
+    }
+
+    /**
+     * Add the build command.
+     * @param app {Application}
+     * @param cli {CLI}
+     */
+    buildCommand(app,cli)
+    {
+        cli.command('build', "Run webpack").action((env,opts) => {
+            app.boot().then(done => {
+                //console.log(app.root.webpack.configuration);
+                app.root.webpack.run().then(done => {
+                    cli.output(["Built!"],true);
+                })
+            })
+
+        });
     }
 
     /**
