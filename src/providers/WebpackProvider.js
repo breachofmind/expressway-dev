@@ -21,17 +21,22 @@ class WebpackProvider extends Provider
      * @param app {Application}
      * @param cli {CLI}
      */
-    buildCommand(app,cli)
+    buildCommand(app,cli,log)
     {
-        cli.command('build', "Run webpack").action((env,opts) => {
-            app.boot().then(done => {
-                //console.log(app.root.webpack.configuration);
-                app.root.webpack.run().then(done => {
-                    cli.output(["Built!"],true);
+        cli.command('build [options]', "Run webpack")
+            .option('-p, --production', "Build for production")
+            .action((env,opts) =>
+            {
+                if (opts.production) {
+                    log.info('building for production...');
+                    app.env = ENV_PROD;
+                }
+                app.boot().then(done => {
+                    app.root.webpack.run().then(done => {
+                        cli.output(["Built!"],true);
+                    })
                 })
-            })
-
-        });
+            });
     }
 
     /**
