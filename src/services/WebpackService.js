@@ -27,7 +27,7 @@ module.exports = function(app,paths,url,utils,log)
                     ignore: /(node_modules|bower_components)/,
                     cacheDirectory: true,
                     presets: [
-                        ['es2015', {modules:false}]
+                        require('babel-preset-es2015')
                     ]
                 },
             });
