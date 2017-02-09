@@ -3,9 +3,10 @@
 var _ = require('lodash');
 var path = require('path');
 var webpack = require('webpack');
+var WebpackDevServer = require('webpack-dev-server');
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-module.exports = function(app,paths,url,utils)
+module.exports = function(app,paths,url,utils,log)
 {
 
     const PACKAGE_RULES = {
@@ -68,10 +69,12 @@ module.exports = function(app,paths,url,utils)
      * The webpack service object.
      * @constructor
      */
-    return class WebpackService
+    class WebpackService
     {
         constructor(extension)
         {
+            WebpackService.instances ++;
+
             this.config        = {};
             this.resolve       = {alias: {}};
             this.rules         = {};
@@ -79,10 +82,10 @@ module.exports = function(app,paths,url,utils)
             this.entries       = {vendor: []};
             this.showErrors    = false;
             this.devMode       = app.env === ENV_LOCAL;
-            this.devPublicPath = "http://localhost:4000/";
+            this.devServerPort = app.config.port + WebpackService.instances;
             this.resourcePath  = paths.resources();
-            this.path          = extension.routes.statics[0].path;
-            this.publicPath    = extension.routes.statics[0].uri;
+            this.path          = extension.routes.statics.length ? extension.routes.statics[0].path : paths.public();
+            this.publicPath    = extension.routes.statics.length ? extension.routes.statics[0].uri : url.get();
             this.filename      = app.env === ENV_LOCAL ? "[name].js" : "[name].min.js";
             this.chunkFilename = app.env === ENV_LOCAL ? "chunk.[id].js" : "chunk.[id].min.js";
             this.devtool       = app.env === ENV_LOCAL ? "cheap-module-source-map" : "source-map";
@@ -98,7 +101,7 @@ module.exports = function(app,paths,url,utils)
          */
         get sourcePath()
         {
-            return this.devMode ? this.devPublicPath : this.publicPath;
+            return this.devMode ? `http://localhost:${this.devServerPort}/` : this.publicPath;
         }
 
         /**
@@ -211,12 +214,12 @@ module.exports = function(app,paths,url,utils)
         get configuration()
         {
             return _.assign({}, this.config, {
-                entry: getEntries(this),
+                entry: getEntries.call(this),
                 output: this.output,
                 devtool: this.devtool,
                 resolve: this.resolve,
-                module: getRules(this),
-                plugins: getPlugins(this)
+                module: getRules.call(this),
+                plugins: getPlugins.call(this)
             })
         }
 
@@ -230,10 +233,46 @@ module.exports = function(app,paths,url,utils)
             {
                 webpack(this.configuration, (err,stats) => {
                     if (err || stats.hasErrors()) {
-                        return reject(err);
+                        console.log(err,stats);
+                        return reject(err,stats);
                     }
                     return resolve(stats);
                 })
+            });
+        }
+
+        /**
+         * Start the webpack dev server (LOCAL ONLY)
+         * @returns {Promise}
+         */
+        server()
+        {
+            // This should only work in a development web environment.
+            if (app.env !== ENV_LOCAL || app.context !== CXT_WEB) return Promise.resolve();
+
+            let opts = {
+                hot: this.hmr,
+                publicPath: this.sourcePath,
+                stats: "minimal",
+                proxy: {
+                    "*" : url.get()
+                }
+            };
+
+            //console.log(this.configuration);
+            let compiler = webpack(this.configuration);
+            let server = new WebpackDevServer(compiler, opts);
+
+            return new Promise((resolve,reject) =>
+            {
+                server.listen(this.devServerPort, 'localhost', (err,result) => {
+                    if (err) {
+                        log.error(err.message);
+                        return reject(err);
+                    }
+                    log.info('starting webpack dev server at http://localhost:%s/', this.devServerPort);
+                    return resolve(result);
+                });
             });
         }
 
@@ -254,6 +293,8 @@ module.exports = function(app,paths,url,utils)
         }
     }
 
+    WebpackService.instances = 0;
+
     /**
      * For renaming the input file
      * @param input
@@ -270,10 +311,10 @@ module.exports = function(app,paths,url,utils)
      * @param service
      * @returns {{loaders: *}}
      */
-    function getRules(service)
+    function getRules()
     {
         return {
-            rules: _.map(service.rules, (value,key) => {
+            rules: _.map(this.rules, (value,key) => {
                 return value;
             })
         }
@@ -284,14 +325,14 @@ module.exports = function(app,paths,url,utils)
      * @returns {{}}
      * @private
      */
-    function getEntries(service)
+    function getEntries()
     {
         let out = {};
-        _.each(service.entries, (arr,name) => {
+        _.each(this.entries, (arr,name) => {
             let middleware = [];
             if (name !== 'vendor') {
-                if (service.devMode) middleware.push(`webpack-dev-server/client?${service.devPublicPath}`);
-                if (service.hmr) middleware.push("webpack/hot/dev-server");
+                if (this.devMode) middleware.push(`webpack-dev-server/client?${this.sourcePath}`);
+                if (this.hmr) middleware.push("webpack/hot/dev-server");
             }
             middleware = middleware.concat(arr);
             out[name] = middleware;
@@ -307,7 +348,7 @@ module.exports = function(app,paths,url,utils)
      * @returns {Array}
      * @private
      */
-    function getPlugins(service)
+    function getPlugins()
     {
         let plugins = [];
 
@@ -316,27 +357,29 @@ module.exports = function(app,paths,url,utils)
                 'process.env': {NODE_ENV: '"production"'}
             }));
         }
-        if (! service.showErrors) {
+        if (! this.showErrors) {
             plugins.push(new webpack.NoEmitOnErrorsPlugin());
         }
-        if (service.entries.vendor.length) {
+        if (this.entries.vendor.length) {
             plugins.push(new webpack.optimize.CommonsChunkPlugin({
                 name: "vendor",
                 filename: "vendor.js"
             }));
         }
-        if (service.hmr) {
+        if (this.hmr) {
             plugins.push(new webpack.HotModuleReplacementPlugin());
         }
-        if (service.uglify) {
-            plugins.push(new webpack.optimize.UglifyJsPlugin(typeof service.uglify == 'object' ? service.uglify : {}));
+        if (this.uglify) {
+            //plugins.push(new webpack.optimize.UglifyJsPlugin(typeof this.uglify == 'object' ? this.uglify : {}));
         }
-        if (service.extractCSS) {
+        if (this.extractCSS) {
             plugins.push(new ExtractTextPlugin({
-                filename:service.cssFilename
+                filename:this.cssFilename
             }));
         }
 
-        return service.plugins.concat(plugins);
+        return this.plugins.concat(plugins);
     }
+
+    return WebpackService;
 };

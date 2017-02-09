@@ -102,7 +102,7 @@ asn1.js@^4.0.0:
     inherits "^2.0.1"
     minimalistic-assert "^1.0.0"
 
-asn1@~0.2.3:
+asn1@~0.2.0, asn1@~0.2.3:
   version "0.2.3"
   resolved "https://registry.yarnpkg.com/asn1/-/asn1-0.2.3.tgz#dac8787713c9966849fc8180777ebe9c1ddf3b86"
 
@@ -1813,6 +1813,16 @@ node-pre-gyp@^0.6.29:
     tar "~2.2.1"
     tar-pack "~3.3.0"
 
+node-ssh@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/node-ssh/-/node-ssh-4.0.1.tgz#fe632bbfc793dc18c6cc3fcf9e36d5f9ad6a3369"
+  dependencies:
+    mkdirp "^0.5.1"
+    sb-promisify "^2.0.1"
+    sb-scandir "^1.0.0"
+    shell-escape "^0.2.0"
+    ssh2 "^0.5.0"
+
 nopt@~3.0.6:
   version "3.0.6"
   resolved "https://registry.yarnpkg.com/nopt/-/nopt-3.0.6.tgz#c6465dbf08abcd4db359317f79ac68a646b28ff9"
@@ -2264,7 +2274,21 @@ ripemd160@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/ripemd160/-/ripemd160-1.0.1.tgz#93a4bbd4942bc574b69a8fa57c71de10ecca7d6e"
 
-"semver@2 || 3 || 4 || 5", semver@~5.3.0:
+sb-promisify@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/sb-promisify/-/sb-promisify-1.3.0.tgz#3af6f1fa9ffc833f14de86916eefc1f559b1b051"
+
+sb-promisify@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/sb-promisify/-/sb-promisify-2.0.1.tgz#86c6cb4e1780c9b38c6fbe7e7873f8ab9677ce2a"
+
+sb-scandir@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/sb-scandir/-/sb-scandir-1.0.0.tgz#102b4666c7b644f4287f0d33ceb4374fac1bfa15"
+  dependencies:
+    sb-promisify "^1.3.0"
+
+"semver@2 || 3 || 4 || 5", semver@^5.1.0, semver@~5.3.0:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.3.0.tgz#9b2ce5d3de02d17c6012ad326aa6b4d0cf54f94f"
 
@@ -2329,6 +2353,10 @@ sha.js@^2.3.6:
   dependencies:
     inherits "^2.0.1"
 
+shell-escape@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/shell-escape/-/shell-escape-0.2.0.tgz#68fd025eb0490b4f567a027f0bf22480b5f84133"
+
 signal-exit@^3.0.0:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.2.tgz#b5fdc08f1287ea1178628e415e25132b73646c6d"
@@ -2389,6 +2417,20 @@ spdx-license-ids@^1.0.2:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/spdx-license-ids/-/spdx-license-ids-1.2.2.tgz#c9df7a3424594ade6bd11900d596696dc06bac57"
 
+ssh2-streams@~0.1.15:
+  version "0.1.16"
+  resolved "https://registry.yarnpkg.com/ssh2-streams/-/ssh2-streams-0.1.16.tgz#ac9d3ce9e062f8cf08fcce5b3a274b6d5cecdc54"
+  dependencies:
+    asn1 "~0.2.0"
+    semver "^5.1.0"
+    streamsearch "~0.1.2"
+
+ssh2@^0.5.0:
+  version "0.5.4"
+  resolved "https://registry.yarnpkg.com/ssh2/-/ssh2-0.5.4.tgz#1bf6b6b28c96eaef267f4d6c46a5a2517a599e27"
+  dependencies:
+    ssh2-streams "~0.1.15"
+
 sshpk@^1.7.0:
   version "1.10.2"
   resolved "https://registry.yarnpkg.com/sshpk/-/sshpk-1.10.2.tgz#d5a804ce22695515638e798dbe23273de070a5fa"
@@ -2428,6 +2470,10 @@ stream-http@^2.3.1:
     readable-stream "^2.1.0"
     to-arraybuffer "^1.0.0"
     xtend "^4.0.0"
+
+streamsearch@~0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/streamsearch/-/streamsearch-0.1.2.tgz#808b9d0e56fc273d809ba57338e929919a1a9f1a"
 
 string-width@^1.0.1, string-width@^1.0.2:
   version "1.0.2"
