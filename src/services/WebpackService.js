@@ -233,7 +233,6 @@ module.exports = function(app,paths,url,utils,log)
             {
                 webpack(this.configuration, (err,stats) => {
                     if (err || stats.hasErrors()) {
-                        console.log(err,stats);
                         return reject(err,stats);
                     }
                     return resolve(stats);

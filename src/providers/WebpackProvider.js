@@ -40,6 +40,10 @@ class WebpackProvider extends Provider
                     log.info('building extension: %s', extension.name);
                     extension.webpack.run().then(done => {
                         cli.output(["built."],true);
+                    }).catch((err,stats) => {
+                        console.error(err);
+                        console.error(stats.errors);
+                        process.exit(1);
                     });
                 })
             });
