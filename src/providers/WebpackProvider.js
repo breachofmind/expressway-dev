@@ -39,10 +39,10 @@ class WebpackProvider extends Provider
                     let extension = app.extensions.get(extensionName);
                     log.info('building extension: %s', extension.name);
                     extension.webpack.run().then(done => {
-                        cli.output(["built."],true);
+                        cli.output(["build complete!"],true);
                     }).catch((err,stats) => {
                         console.error(err);
-                        console.error(stats.errors);
+                        console.error(stats.toJson());
                         process.exit(1);
                     });
                 })
