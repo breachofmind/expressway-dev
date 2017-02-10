@@ -89,8 +89,9 @@ class DeveloperToolsProvider extends Provider
      * @param next {Function}
      * @param app {Application}
      * @param livereload {LivereloadService}
+     * @param utils {Object}
      */
-    boot(next,app,livereload)
+    boot(next,app,livereload,utils,log)
     {
         let WebpackService = app.load(require('../services/WebpackService'));
 
@@ -100,6 +101,12 @@ class DeveloperToolsProvider extends Provider
 
         app.on('started', function() {
             livereload.run();
+
+            // Log the external address
+            let addresses = utils.getEthAddresses();
+            if (app.context == CXT_WEB) {
+                log.info("external address: http://%s:%s", addresses[0].address, app.config.port);
+            }
         });
 
         super.boot(next);
