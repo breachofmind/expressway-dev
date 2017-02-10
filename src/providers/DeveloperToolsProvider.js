@@ -1,7 +1,9 @@
+"use strict";
+
 var Provider = require('expressway').Provider;
 var node_ssh = require('node-ssh');
 
-class WebpackProvider extends Provider
+class DeveloperToolsProvider extends Provider
 {
     constructor(app)
     {
@@ -9,9 +11,7 @@ class WebpackProvider extends Provider
 
         this.order = 1;
 
-        app.use([
-            require('../middlewares/Livereload')
-        ]);
+        app.service('livereload', app.load(require('../services/LivereloadService')));
 
         app.call(this,'buildCommand');
         app.call(this,'deployCommand');
@@ -85,11 +85,12 @@ class WebpackProvider extends Provider
     }
 
     /**
-     * Attach the webpack instance to each extension.
-     * @param next
-     * @param app
+     * Attach the webpack instance to each extension and add livereload event listener.
+     * @param next {Function}
+     * @param app {Application}
+     * @param livereload {LivereloadService}
      */
-    boot(next,app)
+    boot(next,app,livereload)
     {
         let WebpackService = app.load(require('../services/WebpackService'));
 
@@ -97,8 +98,12 @@ class WebpackProvider extends Provider
             extension.webpack = new WebpackService(extension);
         });
 
+        app.on('started', function() {
+            livereload.run();
+        });
+
         super.boot(next);
     }
 }
 
-module.exports = WebpackProvider;
+module.exports = DeveloperToolsProvider;

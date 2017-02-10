@@ -1,1 +1,1 @@
-module.exports = require('./src/providers/WebpackProvider');
+module.exports = require('./src/providers/DeveloperToolsProvider');

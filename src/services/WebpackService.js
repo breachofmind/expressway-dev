@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var path = require('path');
+var expressway = require('expressway');
 var webpack = require('webpack');
 var WebpackDevServer = require('webpack-dev-server');
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
@@ -93,6 +94,8 @@ module.exports = function(app,paths,url,utils,log)
             this.hmr           = app.env === ENV_LOCAL;
             this.uglify        = app.env === ENV_PROD;
             this.extractCSS    = app.env === ENV_PROD;
+
+            this.read(extension.package);
         }
 
         /**
@@ -181,13 +184,19 @@ module.exports = function(app,paths,url,utils,log)
 
         /**
          * Load files into the view object.
-         * @param view View
+         * @param to View|Controller
          */
-        attach(view)
+        attach(to)
         {
             let files = this.files;
-            files.js.forEach((file,index) => { view.script("jsBundle_"+index, file) });
-            files.css.forEach((file,index) => { view.style("cssBundle_"+index, file) });
+            let fn = function(view) {
+                files.js.forEach((file,index) => { view.script("jsBundle_"+index, file) });
+                files.css.forEach((file,index) => { view.style("cssBundle_"+index, file) });
+            };
+            if (to instanceof expressway.Controller) {
+                return to.defaults.push(fn);
+            }
+            return fn(to);
         }
 
         /**
