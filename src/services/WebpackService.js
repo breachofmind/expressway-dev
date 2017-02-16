@@ -7,37 +7,27 @@ var webpack = require('webpack');
 var WebpackDevServer = require('webpack-dev-server');
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-module.exports = function(app,paths,url,utils,log)
+module.exports = function(app,paths,url,utils,log,config)
 {
 
     const PACKAGE_RULES = {
         "vue-loader" : function(npm)
         {
-            let config = {
-                loaders: {js:'babel-loader'}
-            };
             this.resolve.alias['vue$'] = 'vue/dist/vue.common.js';
-            this.rule('vue', {loaders: ['vue-loader']}, {vue: config})
+            this.rule('vue', {use: ['vue-loader']});
         },
 
         "babel-loader" : function(npm)
         {
             this.rule('js', {
-                loader: "babel-loader",
-                options: {
-                    ignore: /(node_modules|bower_components)/,
-                    cacheDirectory: true,
-                    presets: [
-                        require('babel-preset-es2015')
-                    ]
-                },
+                loader: "babel-loader"
             });
         },
 
         "sass-loader" : function(npm)
         {
             let use;
-            let hasPostcss = npm('dependencies.postcss-loader') || npm('devDependencies.postcss-loader');
+            let hasPostcss = npm('postcss-loader');
             let postcssLoader = {
                 loader:"postcss-loader",
                 options: {
@@ -46,9 +36,9 @@ module.exports = function(app,paths,url,utils,log)
             };
             let sassLoader = {
                 loader:"sass-loader",
-                options: {
+                options: config('dev.sassOptions', {
                     outputStyle: app.env == ENV_LOCAL ? "expanded" : "compressed"
-                }
+                })
             };
 
             if (this.extractCSS) {
@@ -76,6 +66,7 @@ module.exports = function(app,paths,url,utils,log)
         {
             WebpackService.instances ++;
 
+            this.context       = paths.root();
             this.config        = {};
             this.resolve       = {alias: {}};
             this.rules         = {};
@@ -128,11 +119,11 @@ module.exports = function(app,paths,url,utils,log)
         {
             if (! npmPackage) return;
 
-            let npm = utils.objectAccessor(npmPackage);
+            let npm = utils.objectAccessor(_.assign({}, npmPackage.dependencies || {}, npmPackage.devDependencies || {}));
 
             _.each(PACKAGE_RULES, (fn,name) => {
-                if (npm('dependencies.'+name) || npm('devDependencies.'+name)) {
-                    fn.call(this, npm);
+                if (npm(name)) {
+                    fn.call(this,npm);
                 }
             });
 
@@ -223,6 +214,7 @@ module.exports = function(app,paths,url,utils,log)
         get configuration()
         {
             return _.assign({}, this.config, {
+                context: this.context,
                 entry: getEntries.call(this),
                 output: this.output,
                 devtool: this.devtool,
