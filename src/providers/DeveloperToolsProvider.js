@@ -58,7 +58,7 @@ class DeveloperToolsProvider extends Provider
      * @param log {Winston}
      * @param config {Function}
      */
-    deployCommand(app,cli,log,config)
+    deployCommand(app,cli,log,config,paths)
     {
         cli.command('deploy [options]', "Deploys the current branch to the configured deployment source")
             .action((env,opts) => {
@@ -72,12 +72,24 @@ class DeveloperToolsProvider extends Provider
                     username: config('deploy.username'),
                     privateKey: config('deploy.privateKey'),
                 });
+                let serverConfig = require(paths.root('config/server.json'));
+
+                function stdout(result) {
+                    console.log(result.stdout);
+                }
 
                 conn.then(function() {
-                    log.info('ssh connected to %s', config('deploy.host'))
-                    ssh.execCommand('git status', {cwd: config('deploy.path')}).then(result => {
-                        console.log(result.stdout);
-                        process.exit();
+                    let cwd = config('deploy.path');
+                    log.info('ssh connected to %s:%s', config('deploy.host'), cwd);
+                    ssh.execCommand('git pull origin master', {cwd: cwd}).then(result => {
+                        stdout(result);
+                        ssh.execCommand('forever stop '+serverConfig.uid, {cwd: cwd}).then(result => {
+                            stdout(result);
+                            ssh.execCommand('forever start ./config/server.json', {cwd: cwd}).then(result => {
+                                stdout(result);
+                                process.exit();
+                            })
+                        })
                     });
                 });
 
