@@ -33,6 +33,6 @@
     "webpack-dev-server": "^1.16.2"
   },
   "peerDependencies": {
-    "expressway": "breachofmind/expressway"
+    "expressway": "github:breachofmind/expressway"
   }
 }

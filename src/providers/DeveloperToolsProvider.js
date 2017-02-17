@@ -73,23 +73,21 @@ class DeveloperToolsProvider extends Provider
                     privateKey: config('deploy.privateKey'),
                 });
                 let serverConfig = require(paths.root('config/server.json'));
-
-                function stdout(result) {
-                    console.log(result.stdout);
-                }
+                let cwd = config('deploy.path');
 
                 conn.then(function() {
-                    let cwd = config('deploy.path');
+
                     log.info('ssh connected to %s:%s', config('deploy.host'), cwd);
+
                     ssh.execCommand('git pull origin master', {cwd: cwd}).then(result => {
                         stdout(result);
-                        ssh.execCommand('forever stop '+serverConfig.uid, {cwd: cwd}).then(result => {
-                            stdout(result);
-                            ssh.execCommand('forever start ./config/server.json', {cwd: cwd}).then(result => {
-                                stdout(result);
-                                process.exit();
-                            })
-                        })
+                        return ssh.execCommand('forever stop '+serverConfig.uid, {cwd: cwd});
+                    }).then(result => {
+                        stdout(result);
+                        return ssh.execCommand('forever start ./config/server.json', {cwd: cwd});
+                    }).then(result => {
+                        stdout(result);
+                        process.exit();
                     });
                 });
 
