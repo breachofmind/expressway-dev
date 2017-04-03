@@ -28,6 +28,7 @@
     "extract-text-webpack-plugin": "v2.0.0-rc.1",
     "livereload": "^0.6.0",
     "lodash": "^4.17.4",
+    "node-sass": "^4.5.2",
     "node-ssh": "^4.0.1",
     "webpack": "^2.2.1",
     "webpack-dev-server": "^1.16.2"

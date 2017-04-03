@@ -95,7 +95,7 @@ module.exports = function(app,paths,url,utils,log,config)
          */
         get sourcePath()
         {
-            return this.devMode ? `http://localhost:${this.devServerPort}/` : this.publicPath;
+            return this.devMode ? `http://localhost:${this.devServerPort}/` : slash(this.publicPath);
         }
 
         /**
@@ -370,7 +370,7 @@ module.exports = function(app,paths,url,utils,log,config)
             plugins.push(new webpack.HotModuleReplacementPlugin());
         }
         if (this.uglify) {
-            //plugins.push(new webpack.optimize.UglifyJsPlugin(typeof this.uglify == 'object' ? this.uglify : {}));
+            plugins.push(new webpack.optimize.UglifyJsPlugin(typeof this.uglify == 'object' ? this.uglify : {}));
         }
         if (this.extractCSS) {
             plugins.push(new ExtractTextPlugin({
@@ -379,6 +379,10 @@ module.exports = function(app,paths,url,utils,log,config)
         }
 
         return this.plugins.concat(plugins);
+    }
+
+    function slash(path) {
+        return _.trimEnd(path, "/") + "/";
     }
 
     return WebpackService;

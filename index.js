@@ -1,1 +1,1 @@
-module.exports = require('./src/providers/DeveloperToolsProvider');
+module.exports = exports = require('./src/providers/DeveloperToolsProvider');
