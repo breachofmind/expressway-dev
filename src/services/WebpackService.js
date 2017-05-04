@@ -22,6 +22,9 @@ module.exports = function(app,paths,url,utils,log,config)
             this.rule('js', {
                 loader: "babel-loader"
             });
+            this.rule('jsx', {
+                loader: "babel-loader"
+            });
         },
 
         "sass-loader" : function(npm)
@@ -37,7 +40,7 @@ module.exports = function(app,paths,url,utils,log,config)
             let sassLoader = {
                 loader:"sass-loader",
                 options: config('dev.sassOptions', {
-                    outputStyle: app.env == ENV_LOCAL ? "expanded" : "compressed"
+                    outputStyle: app.env === ENV_LOCAL ? "expanded" : "compressed"
                 })
             };
 
@@ -52,7 +55,38 @@ module.exports = function(app,paths,url,utils,log,config)
             }
 
             this.rule('scss', {use: use});
-        }
+        },
+
+
+        "stylus-loader" : function(npm)
+        {
+            let use;
+            let hasPostcss = npm('postcss-loader');
+            let postcssLoader = {
+                loader:"postcss-loader",
+                options: {
+                    plugins: [require('autoprefixer')]
+                }
+            };
+            let stylusLoader = {
+                loader:"stylus-loader",
+                options: config('dev.stylusOptions', {
+                    outputStyle: app.env === ENV_LOCAL ? "expanded" : "compressed"
+                })
+            };
+
+            if (this.extractCSS) {
+                use = ExtractTextPlugin.extract({
+                    fallbackLoader: "style-loader",
+                    loader: hasPostcss ? ['css-loader',postcssLoader,stylusLoader] : ['style-loader','css-loader',stylusLoader]
+                });
+
+            } else {
+                use = hasPostcss ? ['style-loader','css-loader',postcssLoader,stylusLoader] : ['style-loader','css-loader',stylusLoader];
+            }
+
+            this.rule('styl', {use: use});
+        },
     };
 
 
@@ -352,7 +386,7 @@ module.exports = function(app,paths,url,utils,log,config)
     {
         let plugins = [];
 
-        if (app.env == ENV_PROD) {
+        if (app.env === ENV_PROD) {
             plugins.push(new webpack.DefinePlugin({
                 'process.env': {NODE_ENV: '"production"'}
             }));
